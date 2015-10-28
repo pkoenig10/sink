@@ -122,7 +122,7 @@ class Facebook:
 
     def get_friends(self):
         friends = {}
-        friends_base_path = self.get_profile_path() + '?v=friends'
+        friends_base_path = self.get_profile_path() + '/friends'
         friends_path = friends_base_path
         has_next = True
         while(has_next):
@@ -147,7 +147,7 @@ class Facebook:
         return urllib.urlretrieve(graph_api_json['url'])[0]
 
 
-class GoogleContacts():
+class GoogleContacts:
     client_id = '552213042372-tf77q58ch6t6o6tp3s40d66pqeumg10v'  
     client_secret = 'mQyQpDQgjaZ5Leh8SjKLXu5y'
     scope = 'https://www.google.com/m8/feeds'
@@ -225,8 +225,7 @@ class GoogleContacts():
             pass
 
 
-class Sink():
-
+class Sink:
     def __init__(self, shelf):
         self.shelf = shelf
         self.links = self.shelf[LINKS] if LINKS in shelf else {}
