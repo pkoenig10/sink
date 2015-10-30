@@ -63,7 +63,7 @@ You will be presented with a prompt. There are three options.\n\
      Sink will ignore this contact during updates.'''
 
 # Default arguments
-PORT = 3223
+PORT = 7465
 SCORE_THRESHOLD = 100
 MATCH_LIMIT = 5
 RETRIES = 3

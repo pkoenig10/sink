@@ -38,7 +38,7 @@ The Sink update command is invoked by the following command
 * `-a, --auto-only` - skip all contacts not automatically linked.  This is useful when running Sink automatically so it does not prompt for user input.
 * `-i, --update-ignored` - update all contacts previously ignored.  This is useful when you previously ignored a contact but recently became Facebook friends.
 * `-s SCORE, --score SCORE` - score threshold to automatically link contacts.  Must be between 0 and 100.  The higher this number, the more similar contact and friends names must be to be automatically linked.  Defaults to 100 (perfect match).
-* `-m MATCHES, --matches MATCHES` - score threshold to automatically link contacts.  Must be between 0 and 100.  The higher this number, the more similar contact and friends names will have to be for Sink to automatically link them.  Defaults to 5.
+* `-m MATCHES, --matches MATCHES` - the number of results to show when searching for friends to link to a contact.  Defaults to 5.
 * `-r RETRIES, --retries RETRIES` - number of times to retry updating photos before failing.  Defaults to 3.
 
 To view information about the Sink update command invoke help
@@ -57,7 +57,7 @@ The Sink edit command is invoked by the following command
 
 * `filename` - the name of shelf database file to use.  Defaults to `sinkshelf`.
 * `-s SCORE, --score SCORE` - score threshold to automatically link contacts.  Must be between 0 and 100.  The higher this number, the more similar contact and friends names must be to be automatically linked.  Defaults to 100 (perfect match).
-* `-m MATCHES, --matches MATCHES` - score threshold to automatically link contacts.  Must be between 0 and 100.  The higher this number, the more similar contact and friends names will have to be for Sink to automatically link them.  Defaults to 5.
+* `-m MATCHES, --matches MATCHES` - the number of results to show when searching for friends to link to a contact.  Defaults to 5.
 
 To view information about the Sink edit command invoke help
 
@@ -89,7 +89,7 @@ Sink scrapes your Facebook profile friends page to obtain a list of your friends
 
 #### Google Contacts
 
-Sink uses the [Google Contacts API](https://developers.google.com/google-apps/contacts) through the [Google Data Python Library](https://github.com/google/gdata-python-client).  Sink requests an OAuth token when run for the first time.  This token is then stored in the shelf database and used in future invocations.  Sink temporarily runs a minimal HTTP server listening on port 3223 when requesting an OAuth token in order to receive the response containing the token data.  The port listened on by the server can be changed in the source code.
+Sink uses the [Google Contacts API](https://developers.google.com/google-apps/contacts) through the [Google Data Python Library](https://github.com/google/gdata-python-client).  Sink requests an OAuth token when run for the first time.  This token is then stored in the shelf database and used in future invocations.  Sink temporarily runs a minimal HTTP server listening on port 7465 when requesting an OAuth token in order to receive the response containing the token data.  The port listened on by the server can be changed in the source code.
 
 #### Data Storage
 
