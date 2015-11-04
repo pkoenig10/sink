@@ -274,7 +274,7 @@ class Sink:
 
     def _clean_links(self):
         for contact_url in self.links.keys():
-            if contact_url not in self.contacts:
+            if contact_url not in self.contacts or (self.links[contact_url] is not None and self.links[contact_url] not in self.friends):
                 del self.links[contact_url]
 
     def _update_links(self, update_ignored, auto_only, score_threshold, match_limit):
