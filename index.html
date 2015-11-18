@@ -1,0 +1,187 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Sink by pkoenig10</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <meta name="viewport" content="width=device-width">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Sink</h1>
+        <p>Uses Facebook profile pictures to provide high resolution photos for your Google contacts.</p>
+
+        <p class="view"><a href="https://github.com/pkoenig10/sink">View the Project on GitHub <small>pkoenig10/sink</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/pkoenig10/sink/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/pkoenig10/sink/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/pkoenig10/sink">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a id="sink" class="anchor" href="#sink" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sink</h1>
+
+<p>Sink is a utility that uses Facebook profile pictures to provide high resolution photos for your Google contacts. Sink links each of your Google contacts with their Facebook profile and stores those links to allow for quick updates.</p>
+
+<h2>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>To install the required dependencies, run the following command.  This only needs to be done once.</p>
+
+<pre><code>$ python setup.py
+</code></pre>
+
+<h2>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>When run for the first time, Sink will request permission to manage your contacts and ask for your Facebook username and password.  This is necessary to be able to access your accounts.  Sink will also create a database which contains these credentials and all created links created between Google contacts and Facebook friends.  This database is automatically updated anytime Sink is run.  <strong>This data is not stored securely or protected in any way.  Secure your computer account to protect access to your database and do not share it others.</strong></p>
+
+<h3>
+<a id="basic-usage" class="anchor" href="#basic-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic Usage</h3>
+
+<p>To update your contact photos simply invoke the following command</p>
+
+<pre><code>$ python sink.py update
+</code></pre>
+
+<h3>
+<a id="commands" class="anchor" href="#commands" aria-hidden="true"><span class="octicon octicon-link"></span></a>Commands</h3>
+
+<p>The following provides details on each of the Sink commands.  To view information about the possible commands invoke help</p>
+
+<pre><code>$ python sink.py -h
+</code></pre>
+
+<h4>
+<a id="update" class="anchor" href="#update" aria-hidden="true"><span class="octicon octicon-link"></span></a>Update</h4>
+
+<p>The update command updates your links and contact photos.  This command first creates links for all Google contacts that are not already stored in the database.  It attempts to automatically link contacts with Facebook friends by matching Google contact names with Facebook friend names.  You will then be prompted to manually link or ignore all contacts that could not be automatically linked.  Once all contacts have been linked your contact photos will be updated according to the created links.</p>
+
+<p>The Sink update command is invoked by the following command</p>
+
+<pre><code>$ python sink.py update [filename] [-a] [-i] [-s SCORE] [-m MATCHES] [-r RETRIES]
+</code></pre>
+
+<h6>
+<a id="optional-arguments" class="anchor" href="#optional-arguments" aria-hidden="true"><span class="octicon octicon-link"></span></a>Optional Arguments</h6>
+
+<ul>
+<li>
+<code>filename</code> - the name of shelf database file to use.  Defaults to <code>sinkshelf</code>.</li>
+<li>
+<code>-a, --auto-only</code> - skip all contacts not automatically linked.  This is useful when running Sink automatically so it does not prompt for user input.</li>
+<li>
+<code>-i, --update-ignored</code> - update all contacts previously ignored.  This is useful when you previously ignored a contact but recently became Facebook friends.</li>
+<li>
+<code>-s SCORE, --score SCORE</code> - score threshold to automatically link contacts.  Must be between 0 and 100.  The higher this number, the more similar contact and friends names must be to be automatically linked.  Defaults to 100 (perfect match).</li>
+<li>
+<code>-m MATCHES, --matches MATCHES</code> - the number of results to show when searching for friends to link to a contact.  Defaults to 5.</li>
+<li>
+<code>-r RETRIES, --retries RETRIES</code> - number of times to retry updating photos before failing.  Defaults to 3.</li>
+</ul>
+
+<p>To view information about the Sink update command invoke help</p>
+
+<pre><code>$ python sink.py update -h
+</code></pre>
+
+<h4>
+<a id="edit" class="anchor" href="#edit" aria-hidden="true"><span class="octicon octicon-link"></span></a>Edit</h4>
+
+<p>The edit command allows you to edit your existing links.  You will be prompted to select a contact and then manually link or ignore that contact.</p>
+
+<p>The Sink edit command is invoked by the following command</p>
+
+<pre><code>$ python sink.py edit [filename] [-s SCORE] [-m MATCHES]
+</code></pre>
+
+<h6>
+<a id="optional-arguments-1" class="anchor" href="#optional-arguments-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Optional Arguments</h6>
+
+<ul>
+<li>
+<code>filename</code> - the name of shelf database file to use.  Defaults to <code>sinkshelf</code>.</li>
+<li>
+<code>-s SCORE, --score SCORE</code> - score threshold to automatically link contacts.  Must be between 0 and 100.  The higher this number, the more similar contact and friends names must be to be automatically linked.  Defaults to 100 (perfect match).</li>
+<li>
+<code>-m MATCHES, --matches MATCHES</code> - the number of results to show when searching for friends to link to a contact.  Defaults to 5.</li>
+</ul>
+
+<p>To view information about the Sink edit command invoke help</p>
+
+<pre><code>$ python sink.py edit -h
+</code></pre>
+
+<h4>
+<a id="delete" class="anchor" href="#delete" aria-hidden="true"><span class="octicon octicon-link"></span></a>Delete</h4>
+
+<p>The delete command delete all Google contact photos provided by Sink.  Optionally, it will also delete all links saved in the database.</p>
+
+<p>The Sink delete command is invoked by the following command</p>
+
+<pre><code>$ python sink.py delete [filename] [-l] [-r RETRIES]
+</code></pre>
+
+<h6>
+<a id="optional-arguments-2" class="anchor" href="#optional-arguments-2" aria-hidden="true"><span class="octicon octicon-link"></span></a>Optional Arguments</h6>
+
+<ul>
+<li>
+<code>filename</code> - the name of shelf database file to use.  Defaults to <code>sinkshelf</code>.</li>
+<li>
+<code>-l, --delete-links</code> - delete saved links.</li>
+<li>
+<code>-r RETRIES, --retries RETRIES</code> - number of times to retry updating photos before failing.  Defaults to 3.</li>
+</ul>
+
+<p>To view information about the Sink delete command invoke help</p>
+
+<pre><code>$ python sink.py delete -h
+</code></pre>
+
+<h2>
+<a id="implementation-details" class="anchor" href="#implementation-details" aria-hidden="true"><span class="octicon octicon-link"></span></a>Implementation Details</h2>
+
+<h4>
+<a id="facebook" class="anchor" href="#facebook" aria-hidden="true"><span class="octicon octicon-link"></span></a>Facebook</h4>
+
+<p>Sink scrapes your Facebook profile friends page to obtain a list of your friends' names and their Facebook usernames.  These usernames are then used to scrape your friends' profile pages to obtain their user ID.  This ID is then used to query the <a href="https://developers.facebook.com/docs/graph-api">Facebook Graph API</a> (specifically <a href="https://developers.facebook.com/docs/graph-api/reference/user/picture">User Picture</a>) to obtain their profile picture.</p>
+
+<h4>
+<a id="google-contacts" class="anchor" href="#google-contacts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Google Contacts</h4>
+
+<p>Sink uses the <a href="https://developers.google.com/google-apps/contacts">Google Contacts API</a> through the <a href="https://github.com/google/gdata-python-client">Google Data Python Library</a>.  Sink requests an OAuth token when run for the first time.  This token is then stored in the shelf database and used in future invocations.  Sink temporarily runs a minimal HTTP server listening on port 7465 when requesting an OAuth token in order to receive the response containing the token data.  The port listened on by the server can be changed in the source code.</p>
+
+<h4>
+<a id="data-storage" class="anchor" href="#data-storage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Data Storage</h4>
+
+<p>Sink uses the <a href="https://docs.python.org/library/shelve.html">shelve</a> module in the Python standard library to persist data between Sink invocations.  The created shelf database stores the following information:</p>
+
+<ul>
+<li>Facebook username</li>
+<li>Facebook password</li>
+<li>Google OAuth token</li>
+<li>Created links between Google contacts and Facebook friends</li>
+</ul>
+
+<p><strong>This data is not stored securely or protected in any way.  Protect access to your shelf database and do not share it others.</strong> This is because Sink needs to be able to read your Facebook username and password in order to scrape friend data.  Securing the shelf database would require user authentication on every invocation of Sink, which is inconvenient.  This is not a security concern because Sink is intended to be run locally so the shelf database file will be stored in a directory accessible only to the intended user.  To protect your shelf database take the appropriate steps to secure your computer user account.</p>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/pkoenig10">pkoenig10</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
