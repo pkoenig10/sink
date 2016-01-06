@@ -183,7 +183,7 @@ class GoogleContacts:
                 break
         feed = self.client.GetContacts(q=query)
         for contact in feed.entry:
-            if contact.name.full_name:
+            if contact.name and contact.name.full_name:
                 contacts[contact.id.text.replace('base', 'full')] = contact.name.full_name.text
         return contacts
 
