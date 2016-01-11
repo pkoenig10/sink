@@ -229,12 +229,14 @@ class Sink:
     def __init__(self, shelf):
         self.shelf = shelf
         self.links = self.shelf[LINKS] if LINKS in shelf else {}
-        print "Getting Google contacts..."
+        print "Authorizing Google..."
         self.google = GoogleContacts(shelf)
+        print "Getting Google contacts..."
         self.contacts = self.google.get_contacts()
         print "%d contacts" % len(self.contacts)
-        print "Getting Facebook friends..."
+        print "Authorizing Facebook..."
         self.facebook = Facebook(shelf)
+        print "Getting Facebook friends..."
         self.friends = self.facebook.get_friends()
         print "%d friends" % len(self.friends)
 
