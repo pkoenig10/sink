@@ -130,9 +130,11 @@ class Facebook:
             friends_soup = self._open_soup(self.base_url + friends_path)
             for link in friends_soup.find_all('a'):
                 href = link.get('href')
-                if ('fref=fr_tab' in href):
+                if href is None:
+                    continue
+                elif 'fref=fr_tab' in href:
                     friends[unicode(href.split('?')[0])] = unicode(link.contents[0])
-                elif (friends_base_path in href):
+                elif friends_base_path in href:
                     friends_path = href
                     has_next = True
                     break
