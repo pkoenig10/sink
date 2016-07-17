@@ -4,6 +4,7 @@ import os.path
 import argparse
 import getpass
 import re
+import hashlib
 import cookielib
 import urllib
 import urllib2
@@ -73,6 +74,7 @@ TOKEN = 'token'
 USERNAME = 'username'
 PASSWORD = 'password'
 LINKS = 'links'
+CHECKSUMS = 'checksums'
 
 
 class Facebook:
@@ -231,6 +233,7 @@ class Sink:
     def __init__(self, shelf):
         self.shelf = shelf
         self.links = self.shelf[LINKS] if LINKS in shelf else {}
+        self.checksums = self.shelf[CHECKSUMS] if CHECKSUMS in shelf else {}
         print "Authorizing Google..."
         self.google = GoogleContacts(shelf)
         print "Getting Google contacts..."
@@ -262,10 +265,15 @@ class Sink:
                 picture = self.facebook.get_profile_picture(friend_url, self.friends[friend_url])
                 if picture is None:
                     print "NO PICTURE: " + self.contacts[contact_url]
+                    continue
+                checksum = hashlib.md5(open(picture).read()).hexdigest()
+                if contact_url in self.checksums and self.checksums[contact_url] == checksum:
+                    print "UNCHANGED: " + self.contacts[contact_url]
                 elif self._retry(lambda: self.google.update_photo(contact_url, picture), retries):
-                    print "SUCCESS: " + self.contacts[contact_url]
+                    print "UPDATED: " + self.contacts[contact_url]
+                    self._set_checksum(contact_url, checksum)
                 else:
-                    print "FAILURE: " + self.contacts[contact_url]
+                    print "FAILED: " + self.contacts[contact_url]
 
     def _delete_photos(self, retries):
         print "Deleting photos..."
@@ -280,6 +288,7 @@ class Sink:
         for contact_url in self.links.keys():
             if contact_url not in self.contacts or (self.links[contact_url] is not None and self.links[contact_url] not in self.friends):
                 del self.links[contact_url]
+                del self.checksums[contact_url]
 
     def _update_links(self, update_ignored, auto_only, score_threshold, match_limit):
         print "Updating links..."
@@ -318,14 +327,14 @@ class Sink:
         print "Deleting links..."
         if delete_links:
             self.links.clear()
-            self.save_links()
+            self._save_links()
 
-    def save_links(self):
+    def _save_links(self):
         self.shelf[LINKS] = self.links
 
     def _add_link(self, contact_url, friend_url):
         self.links[contact_url] = friend_url
-        self.save_links()
+        self._save_links()
         self._print_link(contact_url)
 
     def _get_link(self, contact_url, score_threshold, match_limit, auto_match):
@@ -368,6 +377,13 @@ class Sink:
             except Exception:
                 continue
         return False
+
+    def _set_checksum(self, contact_url, checksum):
+        self.checksums[contact_url] = checksum
+        self._save_checksums()
+
+    def _save_checksums(self):
+        self.shelf[CHECKSUMS] = self.checksums
 
 
 def main():
