@@ -135,7 +135,8 @@ class Facebook:
                 if href is None:
                     continue
                 elif 'fref=fr_tab' in href:
-                    friends[unicode(href.split('?')[0])] = unicode(link.contents[0])
+                    delim = '&' if 'profile.php' in href else '?'
+                    friends[unicode(href.split(delim)[0])] = unicode(link.contents[0])
                 elif friends_base_path in href:
                     friends_path = href
                     has_next = True
