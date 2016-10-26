@@ -86,7 +86,7 @@ class Facebook:
     def __init__(self, shelf):
         cookie_jar = cookielib.CookieJar()
         self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie_jar))
-        login_url = self.base_url + '/login.php'
+        login_url = self.base_url + '/login/'
         username = shelf[USERNAME] if USERNAME in shelf else None
         password = shelf[PASSWORD] if PASSWORD in shelf else None
         while(True):
