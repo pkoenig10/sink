@@ -368,7 +368,7 @@ class Sink:
             print "%s%s <- %s" % (prefix, self.contacts[contact_url], self.friends[friend_url])
 
     def _get_matches(self, name, match_limit):
-        return process.extract(name, self.friends.keys(), processor=lambda friend_url: self.friends[friend_url], scorer=fuzz.UWRatio, limit=match_limit)
+        return process.extract(name, self.friends, scorer=fuzz.UWRatio, limit=match_limit)
 
     def _retry(self, func, retries):
         for retry in xrange(retries):
