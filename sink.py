@@ -299,7 +299,7 @@ class Sink:
             if contact_url not in self.links or (update_ignored and self.links[contact_url] is None):
                 matches = self._get_matches(self.contacts[contact_url], match_limit)
                 if matches and matches[0][1] == score_threshold:
-                    self._add_link(contact_url, matches[0][0])
+                    self._add_link(contact_url, matches[0][2])
                 else:
                     unlinks.append(contact_url)
         if not auto_only and unlinks:
@@ -344,9 +344,9 @@ class Sink:
         while(True):
             matches = self._get_matches(name, match_limit)
             if auto_match and matches and matches[0][1] == score_threshold:
-                self._add_link(contact_url, matches[0][0])
+                self._add_link(contact_url, matches[0][2])
                 return
-            for i, (friend_url, score) in enumerate(matches):
+            for i, (name, score, friend_url) in enumerate(matches):
                 print "  %d. %s (%d)" % (i + 1, self.friends[friend_url], score)
             while(True):
                 command = raw_input("> ")
@@ -356,7 +356,7 @@ class Sink:
                 self._add_link(contact_url, None)
                 return
             if command.isdigit():
-                self._add_link(contact_url, matches[int(command) - 1][0])
+                self._add_link(contact_url, matches[int(command) - 1][2])
                 return
             name = command
 
