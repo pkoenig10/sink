@@ -347,7 +347,7 @@ class Sink:
                 self._add_link(contact_url, matches[0][2])
                 return
             for i, (name, score, friend_url) in enumerate(matches):
-                print "  %d. %s (%d)" % (i + 1, self.friends[friend_url], score)
+                print "  %d. %s (%d)" % (i + 1, name, score)
             while(True):
                 command = raw_input("> ")
                 if not command.isdigit() or (int(command) > 0 and int(command) <= match_limit):
