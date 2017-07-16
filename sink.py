@@ -153,7 +153,7 @@ class Facebook:
 
 
 class GoogleContacts:
-    client_id = '552213042372-tf77q58ch6t6o6tp3s40d66pqeumg10v'  
+    client_id = '552213042372-tf77q58ch6t6o6tp3s40d66pqeumg10v'
     client_secret = 'mQyQpDQgjaZ5Leh8SjKLXu5y'
     scope = 'https://www.google.com/m8/feeds'
     user_agent = ''
@@ -289,7 +289,8 @@ class Sink:
         for contact_url in self.links.keys():
             if contact_url not in self.contacts or (self.links[contact_url] is not None and self.links[contact_url] not in self.friends):
                 del self.links[contact_url]
-                del self.checksums[contact_url]
+                if contact_url in self.checksums:
+                    del self.checksums[contact_url]
 
     def _update_links(self, update_ignored, auto_only, score_threshold, match_limit):
         print "Updating links..."
