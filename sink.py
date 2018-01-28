@@ -79,9 +79,8 @@ CHECKSUMS = 'checksums'
 
 class Facebook:
     base_url = 'https://mbasic.facebook.com'
-    full_base_url = 'https://www.facebook.com'
     graph_api_picture = 'https://graph.facebook.com/%s/picture?height=720&width=720&redirect=false'
-    friend_id_regex = r'fb://profile/(\d*)'
+    user_id_regex = r'/messages/thread/(\d+)'
 
     def __init__(self, shelf):
         cookie_jar = cookielib.CookieJar()
@@ -137,9 +136,9 @@ class Facebook:
         return friends
 
     def get_profile_picture(self, friend_url, friend):
-        profile_html = self._open(self.full_base_url + friend_url)
-        friend_id = re.search(self.friend_id_regex, profile_html).group(1)
-        graph_api_json = self._open_json(self.graph_api_picture % friend_id)['data']
+        profile_html = self._open(self.base_url + friend_url)
+        user_id = re.search(self.user_id_regex, profile_html).group(1)
+        graph_api_json = self._open_json(self.graph_api_picture % user_id)['data']
         if graph_api_json['is_silhouette']:
             return None
         return urllib.urlretrieve(graph_api_json['url'])[0]
