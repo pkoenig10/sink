@@ -78,7 +78,7 @@ CHECKSUMS = 'checksums'
 
 
 class Facebook:
-    base_url = 'https://m.facebook.com'
+    base_url = 'https://mbasic.facebook.com'
     full_base_url = 'https://www.facebook.com'
     graph_api_picture = 'https://graph.facebook.com/%s/picture?height=720&width=720&redirect=false'
     friend_id_regex = r'fb://profile/(\d*)'
@@ -104,7 +104,6 @@ class Facebook:
             password = None
         shelf[USERNAME] = username
         shelf[PASSWORD] = password
-        self.home_soup = BeautifulSoup(response.read(), 'html.parser')
 
     def _open(self, url):
         request = urllib2.Request(url)
@@ -117,15 +116,9 @@ class Facebook:
     def _open_json(self, url):
         return json.loads(self._open(url))
 
-    def get_profile_path(self):
-        for link in self.home_soup.find_all('a'):
-            if link.contents[0] == 'Profile':
-                return link.get('href').split('?')[0]
-
     def get_friends(self):
         friends = {}
-        friends_base_path = self.get_profile_path() + '/friends'
-        friends_path = friends_base_path
+        friends_path = '/me/friends'
         has_next = True
         while(has_next):
             has_next = False
@@ -137,7 +130,7 @@ class Facebook:
                 elif 'fref=fr_tab' in href:
                     delim = '&' if 'profile.php' in href else '?'
                     friends[unicode(href.split(delim)[0])] = unicode(link.contents[0])
-                elif friends_base_path in href:
+                elif 'friends?unit_cursor' in href:
                     friends_path = href
                     has_next = True
                     break
