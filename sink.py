@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import os.path
+import os
+import sys
 import argparse
 import getpass
 import re
@@ -342,7 +343,7 @@ class Sink:
             for i, (name, score, friend_url) in enumerate(matches):
                 print "  %d. %s (%d)" % (i + 1, name, score)
             while(True):
-                command = raw_input("> ")
+                command = raw_input("> ").decode(sys.stdin.encoding)
                 if not command.isdigit() or (int(command) > 0 and int(command) <= match_limit):
                     break
             if not command:
