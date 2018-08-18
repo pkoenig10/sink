@@ -6,7 +6,7 @@ Sink is a utility that uses Facebook profile pictures to provide high resolution
 
 To install the required dependencies, run the following command.  This only needs to be done once.
 
-    $ python setup.py
+    $ pip install -r requirements.txt
 
 ## Usage
 

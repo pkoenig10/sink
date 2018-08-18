@@ -1,19 +1,18 @@
 #!/usr/bin/env python
 
 import os
-import sys
 import argparse
 import getpass
 import re
 import hashlib
-import cookielib
-import urllib
-import urllib2
-import urlparse
+import http.cookiejar
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
+import urllib.parse
 import json
 import webbrowser
-import SimpleHTTPServer
-import SocketServer
+import http.server
+import socketserver
 import threading
 import shelve
 import warnings
@@ -84,29 +83,30 @@ class Facebook:
     user_id_regex = r'/messages/thread/(\d+)'
 
     def __init__(self, shelf):
-        cookie_jar = cookielib.CookieJar()
-        self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie_jar))
+        cookie_jar = http.cookiejar.CookieJar()
+        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie_jar))
         login_url = self.base_url + '/login/'
         username = shelf[USERNAME] if USERNAME in shelf else None
         password = shelf[PASSWORD] if PASSWORD in shelf else None
         while(True):
             if username is None:
-                username = raw_input("Facebook username: ")
+                username = input("Facebook username: ")
             if password is None:
                 password = getpass.getpass("Facebook password: ")
-            data = urllib.urlencode({'email':username, 'pass':password})
-            request = urllib2.Request(login_url, data)
+            data = urllib.parse.urlencode({'email':username, 'pass':password})
+            data = data.encode('utf-8')
+            request = urllib.request.Request(login_url, data)
             response = self.opener.open(request)
             if response.geturl().split('?')[0] != login_url:
                 break
-            print "Incorrect login. Try again."
+            print("Incorrect login. Try again.")
             username = None
             password = None
         shelf[USERNAME] = username
         shelf[PASSWORD] = password
 
     def _open(self, url):
-        request = urllib2.Request(url)
+        request = urllib.request.Request(url)
         response = self.opener.open(request)
         return response.read()
 
@@ -129,7 +129,7 @@ class Facebook:
                     continue
                 elif 'fref=fr_tab' in href:
                     delim = '&' if 'profile.php' in href else '?'
-                    friends[unicode(href.split(delim)[0])] = unicode(link.contents[0])
+                    friends[href.split(delim)[0]] = link.contents[0]
                 elif 'friends?unit_cursor' in href:
                     friends_path = href
                     has_next = True
@@ -138,11 +138,12 @@ class Facebook:
 
     def get_profile_picture(self, friend_url, friend):
         profile_html = self._open(self.base_url + friend_url)
+        profile_html = profile_html.decode('utf-8')
         user_id = re.search(self.user_id_regex, profile_html).group(1)
         graph_api_json = self._open_json(self.graph_api_picture % user_id)['data']
         if graph_api_json['is_silhouette']:
             return None
-        return urllib.urlretrieve(graph_api_json['url'])[0]
+        return urllib.request.urlretrieve(graph_api_json['url'])[0]
 
 
 class GoogleContacts:
@@ -160,7 +161,7 @@ class GoogleContacts:
         token.authorize(self.client)
 
     def _get_token(self):
-        server = SocketServer.TCPServer(('localhost', self.port), self._OAuthResponseHandler)
+        server = socketserver.TCPServer(('localhost', self.port), self._OAuthResponseHandler)
         server_thread = threading.Thread(target=server.handle_request)
         server_thread.daemon = True
         server_thread.start()
@@ -194,30 +195,29 @@ class GoogleContacts:
         contact = self.client.GetContact(contact_url)
         self.client.DeletePhoto(media, contact)
 
-    class _OAuthResponseHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+    class _OAuthResponseHandler(http.server.SimpleHTTPRequestHandler):
         html = '''\
 <!DOCTYPE html>
 <html>
 <head>
 <title>Sink</title>
 </head>
-<body style="margin:0;">
-<div style="background-color:#f1f1f1; height:60px;"></div>
 <center>
-<p style="font-family:Arial, sans-serif; font-size:1.2em; margin:1.5em 0px">Sink permission granted</p>
-<p style="font-family:Arial, sans-serif; font-size:1em; margin:1em 0px">Please close this page.</p>
+<p style="font-family:sans-serif; font-size:1.2em; margin:1.5em 0px">Sink permission granted</p>
+<p style="font-family:sans-serif; font-size:1em; margin:1em 0px">Please close this page.</p>
 </center>
 </body>
 </html>'''
 
         def do_GET(self):
-            query = urlparse.urlparse(self.path).query
-            params = urlparse.parse_qs(query)
+            query = urllib.parse.urlparse(self.path).query
+            params = urllib.parse.parse_qs(query)
             self.server.code = params['code'][0]
             self.send_response(200)
             self.send_header("Content-type", "text/html")
             self.end_headers()
-            self.wfile.write(self.html)
+            self.wfile.write(self.html.encode('utf-8'))
+            self.wfile.flush()
 
         def log_message(self, format, *args):
             pass
@@ -228,16 +228,16 @@ class Sink:
         self.shelf = shelf
         self.links = self.shelf[LINKS] if LINKS in shelf else {}
         self.checksums = self.shelf[CHECKSUMS] if CHECKSUMS in shelf else {}
-        print "Authorizing Google..."
+        print("Authorizing Google...")
         self.google = GoogleContacts(shelf)
-        print "Getting Google contacts..."
+        print("Getting Google contacts...")
         self.contacts = self.google.get_contacts()
-        print "%d contacts" % len(self.contacts)
-        print "Authorizing Facebook..."
+        print("%d contacts" % len(self.contacts))
+        print("Authorizing Facebook...")
         self.facebook = Facebook(shelf)
-        print "Getting Facebook friends..."
+        print("Getting Facebook friends...")
         self.friends = self.facebook.get_friends()
-        print "%d friends" % len(self.friends)
+        print("%d friends" % len(self.friends))
 
     def update(self, update_ignored=False, auto_only=False, score_threshold=SCORE_THRESHOLD, match_limit=MATCH_LIMIT, retries=RETRIES):
         self._update_links(update_ignored, auto_only, score_threshold, match_limit)
@@ -252,41 +252,42 @@ class Sink:
             self._delete_links()
 
     def _update_photos(self, retries):
-        print "Updating photos..."
+        print("Updating photos...")
         for contact_url in self.links:
             friend_url = self.links[contact_url]
             if friend_url is not None:
                 picture = self.facebook.get_profile_picture(friend_url, self.friends[friend_url])
                 if picture is None:
-                    print "NO PICTURE: " + self.contacts[contact_url]
+                    print("NO PICTURE: " + self.contacts[contact_url])
                     continue
-                checksum = hashlib.md5(open(picture).read()).hexdigest()
+                picture_bytes = open(picture, 'rb').read()
+                checksum = hashlib.md5(picture_bytes).hexdigest()
                 if contact_url in self.checksums and self.checksums[contact_url] == checksum:
-                    print "UNCHANGED: " + self.contacts[contact_url]
+                    print("UNCHANGED: " + self.contacts[contact_url])
                 elif self._retry(lambda: self.google.update_photo(contact_url, picture), retries):
-                    print "UPDATED: " + self.contacts[contact_url]
+                    print("UPDATED: " + self.contacts[contact_url])
                     self._set_checksum(contact_url, checksum)
                 else:
-                    print "FAILED: " + self.contacts[contact_url]
+                    print("FAILED: " + self.contacts[contact_url])
 
     def _delete_photos(self, retries):
-        print "Deleting photos..."
+        print("Deleting photos...")
         self._clean_links()
         for contact_url in self.links:
             if self._retry(lambda: self.google.delete_photo(contact_url), retries):
-                print "SUCCESS: " + self.contacts[contact_url]
+                print("SUCCESS: " + self.contacts[contact_url])
             else:
-                print "FAILURE: " + self.contacts[contact_url]
+                print("FAILURE: " + self.contacts[contact_url])
 
     def _clean_links(self):
-        for contact_url in self.links.keys():
+        for contact_url in list(self.links.keys()):
             if contact_url not in self.contacts or (self.links[contact_url] is not None and self.links[contact_url] not in self.friends):
                 del self.links[contact_url]
                 if contact_url in self.checksums:
                     del self.checksums[contact_url]
 
     def _update_links(self, update_ignored, auto_only, score_threshold, match_limit):
-        print "Updating links..."
+        print("Updating links...")
         self._clean_links()
         unlinks = []
         for contact_url in self.contacts:
@@ -297,29 +298,29 @@ class Sink:
                 else:
                     unlinks.append(contact_url)
         if not auto_only and unlinks:
-            print "\n" + UPDATE_INSTRUCTIONS
+            print("\n" + UPDATE_INSTRUCTIONS)
             for contact_url in unlinks:
-                print
+                print()
                 self._get_link(contact_url, score_threshold, match_limit, True)
 
     def _edit_links(self, score_threshold=SCORE_THRESHOLD, match_limit=MATCH_LIMIT):
         self._clean_links()
         link_contacts = {self.contacts[contact_url]: contact_url for contact_url in self.links}
-        print "\n" + EDIT_INSTRUCTIONS
+        print("\n" + EDIT_INSTRUCTIONS)
         while(True):
-            print
-            name = raw_input("Name: ")
+            print()
+            name = input("Name: ")
             if not name:
                 break
             elif name not in link_contacts:
-                print "Invalid name"
+                print("Invalid name")
             else:
                 contact_url = link_contacts[name]
                 self._print_link(contact_url, "Status: ")
                 self._get_link(contact_url, score_threshold, match_limit, False)
 
     def _delete_links(self):
-        print "Deleting links..."
+        print("Deleting links...")
         if delete_links:
             self.links.clear()
             self._save_links()
@@ -334,16 +335,16 @@ class Sink:
 
     def _get_link(self, contact_url, score_threshold, match_limit, auto_match):
         name = self.contacts[contact_url]
-        print name
+        print(name)
         while(True):
             matches = self._get_matches(name, match_limit)
             if auto_match and matches and matches[0][1] == score_threshold:
                 self._add_link(contact_url, matches[0][2])
                 return
             for i, (name, score, friend_url) in enumerate(matches):
-                print "  %d. %s (%d)" % (i + 1, name, score)
+                print("  %d. %s (%d)" % (i + 1, name, score))
             while(True):
-                command = raw_input("> ").decode(sys.stdin.encoding)
+                command = input("> ")
                 if not command.isdigit() or (int(command) > 0 and int(command) <= match_limit):
                     break
             if not command:
@@ -357,15 +358,15 @@ class Sink:
     def _print_link(self, contact_url, prefix=""):
         friend_url = self.links[contact_url]
         if friend_url is None:
-            print "%s%s IGNORED" % (prefix, self.contacts[contact_url])
+            print("%s%s IGNORED" % (prefix, self.contacts[contact_url]))
         else:
-            print "%s%s <- %s" % (prefix, self.contacts[contact_url], self.friends[friend_url])
+            print("%s%s <- %s" % (prefix, self.contacts[contact_url], self.friends[friend_url]))
 
     def _get_matches(self, name, match_limit):
         return process.extract(name, self.friends, scorer=fuzz.UWRatio, limit=match_limit)
 
     def _retry(self, func, retries):
-        for retry in xrange(retries):
+        for retry in range(retries):
             try:
                 func()
                 return True
@@ -394,7 +395,7 @@ def main():
 
 def parse_args():
     parser = argparse.ArgumentParser(prog='sink', description=DESCRIPTION, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    subparsers = parser.add_subparsers(dest='command', metavar='command')
+    subparsers = parser.add_subparsers(dest='command', metavar='command', required=True)
     file_parser = argparse.ArgumentParser(add_help=False)
     file_parser.add_argument('filename', metavar='file', nargs='?', default='sinkshelf', type=filename, help='shelf database file to use')
     update_parser = argparse.ArgumentParser(add_help=False)
