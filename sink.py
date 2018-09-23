@@ -5,10 +5,7 @@ import argparse
 import getpass
 import re
 import hashlib
-import http.cookiejar
-import urllib.request, urllib.parse, urllib.error
-import urllib.request, urllib.error, urllib.parse
-import urllib.parse
+import urllib.parse, urllib.request
 import json
 import webbrowser
 import http.server
@@ -18,7 +15,7 @@ import shelve
 import warnings
 warnings.simplefilter('ignore', UserWarning)
 
-from bs4 import BeautifulSoup
+import mechanicalsoup
 import gdata.contacts.data
 import gdata.contacts.client
 import gdata.gauth
@@ -83,9 +80,7 @@ class Facebook:
     user_id_regex = r'/messages/thread/(\d+)'
 
     def __init__(self, shelf):
-        cookie_jar = http.cookiejar.CookieJar()
-        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie_jar))
-        login_url = self.base_url + '/login/'
+        self.browser = mechanicalsoup.StatefulBrowser()
         username = shelf[USERNAME] if USERNAME in shelf else None
         password = shelf[PASSWORD] if PASSWORD in shelf else None
         while(True):
@@ -93,57 +88,80 @@ class Facebook:
                 username = input("Facebook username: ")
             if password is None:
                 password = getpass.getpass("Facebook password: ")
-            data = urllib.parse.urlencode({'email':username, 'pass':password})
-            data = data.encode('utf-8')
-            request = urllib.request.Request(login_url, data)
-            response = self.opener.open(request)
-            if response.geturl().split('?')[0] != login_url:
+            if self._login(username, password):
                 break
-            print("Incorrect login. Try again.")
+            print("Login failed. Try again.")
             username = None
             password = None
         shelf[USERNAME] = username
         shelf[PASSWORD] = password
 
-    def _open(self, url):
-        request = urllib.request.Request(url)
-        response = self.opener.open(request)
-        return response.read()
+    def _login(self, username, password):
+        self.browser.open(self.base_url + '/login/')
+        login_form = self.browser.select_form()
+        login_form.set("email", username)
+        login_form.set("pass", password)
+        login_form.choose_submit(None)
+        self.browser.submit_selected()
 
-    def _open_soup(self, url):
-        return BeautifulSoup(self._open(url), 'html.parser')
+        if self._is_home():
+            return True
+        elif not self._is_checkpoint():
+            return False
 
-    def _open_json(self, url):
-        return json.loads(self._open(url))
+        code = input("Facebook two-factor authentication code: ")
+
+        checkpoint_form = self.browser.select_form()
+        checkpoint_form.set('approvals_code', code)
+        checkpoint_form.choose_submit(None)
+        self.browser.submit_selected()
+
+        if self._is_home():
+            return True
+        elif not self._is_login_checkpoint():
+            return False
+
+        remember_form = self.browser.select_form()
+        remember_form.set('name_action_selected', 'dont_save')
+        remember_form.choose_submit(None)
+        response = self.browser.submit_selected()
+
+        return self._is_home()
+
+    def _is_path(self, path):
+        return urllib.parse.urlparse(self.browser.get_url()).path == path
+
+    def _is_home(self):
+        return self._is_path("/home.php")
+
+    def _is_checkpoint(self):
+        return self._is_path("/checkpoint/")
+
+    def _is_login_checkpoint(self):
+        return self._is_path("/login/checkpoint/")
 
     def get_friends(self):
         friends = {}
         friends_path = '/me/friends'
-        has_next = True
-        while(has_next):
-            has_next = False
-            friends_soup = self._open_soup(self.base_url + friends_path)
-            for link in friends_soup.find_all('a'):
+        while(friends_path):
+            self.browser.open(self.base_url + friends_path)
+            friend_links = self.browser.links(url_regex='.*fref=fr_tab')
+            for link in friend_links:
                 href = link.get('href')
-                if href is None:
-                    continue
-                elif 'fref=fr_tab' in href:
-                    delim = '&' if 'profile.php' in href else '?'
-                    friends[href.split(delim)[0]] = link.contents[0]
-                elif 'friends?unit_cursor' in href:
-                    friends_path = href
-                    has_next = True
-                    break
+                delim = '&' if 'profile.php' in href else '?'
+                friends[href.split(delim)[0]] = link.contents[0]
+            page_links = self.browser.links(url_regex='.*friends\?unit_cursor.*')
+            friends_path = page_links[0].get('href') if page_links else None
         return friends
 
     def get_profile_picture(self, friend_url, friend):
-        profile_html = self._open(self.base_url + friend_url)
-        profile_html = profile_html.decode('utf-8')
-        user_id = re.search(self.user_id_regex, profile_html).group(1)
-        graph_api_json = self._open_json(self.graph_api_picture % user_id)['data']
-        if graph_api_json['is_silhouette']:
+        profile_response = self.browser.open(self.base_url + friend_url)
+        user_id = re.search(self.user_id_regex, profile_response.text).group(1)
+        picture_response = self.browser.open(self.graph_api_picture % user_id)
+        picture_data = json.loads(picture_response.text)['data']
+        if picture_data['is_silhouette']:
             return None
-        return urllib.request.urlretrieve(graph_api_json['url'])[0]
+        return urllib.request.urlretrieve(picture_data['url'])[0]
 
 
 class GoogleContacts:
