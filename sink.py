@@ -104,27 +104,23 @@ class Facebook:
         login_form.choose_submit(None)
         self.browser.submit_selected()
 
-        if self._is_home():
-            return True
-        elif not self._is_checkpoint():
-            return False
+        if self._is_checkpoint():
+            code = input("Facebook two-factor authentication code: ")
+            checkpoint_form = self.browser.select_form()
+            checkpoint_form.set('approvals_code', code)
+            checkpoint_form.choose_submit(None)
+            self.browser.submit_selected()
 
-        code = input("Facebook two-factor authentication code: ")
+        if self._is_login_checkpoint():
+            remember_form = self.browser.select_form()
+            remember_form.set('name_action_selected', 'dont_save')
+            remember_form.choose_submit(None)
+            response = self.browser.submit_selected()
 
-        checkpoint_form = self.browser.select_form()
-        checkpoint_form.set('approvals_code', code)
-        checkpoint_form.choose_submit(None)
-        self.browser.submit_selected()
-
-        if self._is_home():
-            return True
-        elif not self._is_login_checkpoint():
-            return False
-
-        remember_form = self.browser.select_form()
-        remember_form.set('name_action_selected', 'dont_save')
-        remember_form.choose_submit(None)
-        response = self.browser.submit_selected()
+        if self._is_save_device():
+            save_device_form = self.browser.select_form()
+            save_device_form.choose_submit(None)
+            response = self.browser.submit_selected()
 
         return self._is_home()
 
@@ -139,6 +135,9 @@ class Facebook:
 
     def _is_login_checkpoint(self):
         return self._is_path("/login/checkpoint/")
+
+    def _is_save_device(self):
+        return self._is_path("/login/save-device/")
 
     def get_friends(self):
         friends = {}
