@@ -128,7 +128,7 @@ class Facebook:
         return urllib.parse.urlparse(self.browser.get_url()).path == path
 
     def _is_home(self):
-        return self._is_path("/home.php")
+        return self._is_path("/")
 
     def _is_checkpoint(self):
         return self._is_path("/checkpoint/")
