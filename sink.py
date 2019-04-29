@@ -90,7 +90,6 @@ class Facebook:
                 password = getpass.getpass("Facebook password: ")
             if self._login(username, password):
                 break
-            print("Login failed. Try again.")
             username = None
             password = None
         shelf[USERNAME] = username
@@ -122,7 +121,15 @@ class Facebook:
             save_device_form.choose_submit(None)
             response = self.browser.submit_selected()
 
-        return self._is_home()
+        success = self._is_home()
+
+        if not success:
+            print("Login failed. Expected home page but path was %s." % self._get_path())
+            answer = input("Do you want to open a view of this page to provide a screenshot for debugging? [y/N]").lower()
+            if answer == "y" or answer == "yes":
+                self.browser.launch_browser()
+
+        return success
 
     def _get_path(self):
         return urllib.parse.urlparse(self.browser.get_url()).path
