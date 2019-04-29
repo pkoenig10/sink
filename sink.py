@@ -124,20 +124,21 @@ class Facebook:
 
         return self._is_home()
 
-    def _is_path(self, path):
-        return urllib.parse.urlparse(self.browser.get_url()).path == path
+    def _get_path(self):
+        return urllib.parse.urlparse(self.browser.get_url()).path
 
     def _is_home(self):
-        return self._is_path("/")
+        path = self._get_path()
+        return path == "/" or path == "/home.php"
 
     def _is_checkpoint(self):
-        return self._is_path("/checkpoint/")
+        return self._get_path() == "/checkpoint/"
 
     def _is_login_checkpoint(self):
-        return self._is_path("/login/checkpoint/")
+        return self._get_path() == "/login/checkpoint/"
 
     def _is_save_device(self):
-        return self._is_path("/login/save-device/")
+        return self._get_path() == "/login/save-device/"
 
     def get_friends(self):
         friends = {}
