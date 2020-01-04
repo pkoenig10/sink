@@ -1,18 +1,20 @@
 #!/usr/bin/env python
 
-import os
 import argparse
 import getpass
-import re
-import hashlib
-import urllib.parse, urllib.request
 import json
-import webbrowser
+import hashlib
 import http.server
+import os
+import re
+import shelve
 import socketserver
 import threading
-import shelve
+import time
 import warnings
+import webbrowser
+import urllib.parse
+import urllib.request
 warnings.simplefilter('ignore', UserWarning)
 
 import mechanicalsoup
@@ -161,15 +163,26 @@ class Facebook:
             friends_path = page_links[0].get('href') if page_links else None
         return friends
 
-    def get_profile_picture(self, friend_url, friend):
-        profile_response = self.browser.open(self.base_url + friend_url)
-        user_id = re.search(self.user_id_regex, profile_response.text).group(1)
+    def get_profile_picture(self, friend_url):
+        user_id = self.get_user_id(friend_url)
+        if not user_id:
+            return None
         picture_response = self.browser.open(self.graph_api_picture % user_id)
         picture_data = json.loads(picture_response.text)['data']
         if picture_data['is_silhouette']:
             return None
         return urllib.request.urlretrieve(picture_data['url'])[0]
 
+    def get_user_id(self, friend_url):
+        profile_response = self.browser.open(self.base_url + friend_url)
+        for i in range(40):
+            matcher = re.search(self.user_id_regex, profile_response.text)
+            if matcher:
+                return matcher.group(1)
+            print("Rate limited on attempt %d, waiting and trying again..." % (i + 1))
+            time.sleep(15)
+        print("Exceeded maximum number of attempts while getting profile picture")
+        return None
 
 class GoogleContacts:
     client_id = '552213042372-tf77q58ch6t6o6tp3s40d66pqeumg10v'
@@ -281,7 +294,7 @@ class Sink:
         for contact_url in self.links:
             friend_url = self.links[contact_url]
             if friend_url is not None:
-                picture = self.facebook.get_profile_picture(friend_url, self.friends[friend_url])
+                picture = self.facebook.get_profile_picture(friend_url)
                 if picture is None:
                     print("NO PICTURE: " + self.contacts[contact_url])
                     continue
