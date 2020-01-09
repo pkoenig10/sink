@@ -1,26 +1,30 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import os
 import argparse
+from datetime import datetime
+from datetime import timedelta
 import getpass
-import re
-import hashlib
-import urllib.parse, urllib.request
 import json
-import webbrowser
+import hashlib
 import http.server
+import os
+import re
+import shelve
 import socketserver
 import threading
-import shelve
+import time
 import warnings
+import webbrowser
+import urllib.parse
+import urllib.request
 warnings.simplefilter('ignore', UserWarning)
 
-import mechanicalsoup
+from fuzzywuzzy import fuzz
+from fuzzywuzzy import process
 import gdata.contacts.data
 import gdata.contacts.client
 import gdata.gauth
-from fuzzywuzzy import fuzz
-from fuzzywuzzy import process
+import mechanicalsoup
 
 
 # Command descriptions
@@ -65,6 +69,8 @@ PORT = 7465
 SCORE_THRESHOLD = 100
 MATCH_LIMIT = 5
 RETRIES = 3
+DELAY = 0
+EXPIRY = 30
 
 # Shelf keys
 TOKEN = 'token'
@@ -72,6 +78,7 @@ USERNAME = 'username'
 PASSWORD = 'password'
 LINKS = 'links'
 CHECKSUMS = 'checksums'
+TIMESTAMPS = 'timestamps'
 
 
 class Facebook:
@@ -161,9 +168,14 @@ class Facebook:
             friends_path = page_links[0].get('href') if page_links else None
         return friends
 
-    def get_profile_picture(self, friend_url, friend):
+    def get_user_id(self, friend_url):
         profile_response = self.browser.open(self.base_url + friend_url)
-        user_id = re.search(self.user_id_regex, profile_response.text).group(1)
+        matcher = re.search(self.user_id_regex, profile_response.text)
+        if not matcher:
+            return None
+        return matcher.group(1)
+
+    def get_profile_picture(self, user_id):
         picture_response = self.browser.open(self.graph_api_picture % user_id)
         picture_data = json.loads(picture_response.text)['data']
         if picture_data['is_silhouette']:
@@ -253,6 +265,7 @@ class Sink:
         self.shelf = shelf
         self.links = self.shelf[LINKS] if LINKS in shelf else {}
         self.checksums = self.shelf[CHECKSUMS] if CHECKSUMS in shelf else {}
+        self.timestamps = self.shelf[TIMESTAMPS] if TIMESTAMPS in shelf else {}
         print("Authorizing Google...")
         self.google = GoogleContacts(shelf)
         print("Getting Google contacts...")
@@ -264,9 +277,9 @@ class Sink:
         self.friends = self.facebook.get_friends()
         print("%d friends" % len(self.friends))
 
-    def update(self, update_ignored=False, auto_only=False, score_threshold=SCORE_THRESHOLD, match_limit=MATCH_LIMIT, retries=RETRIES):
+    def update(self, update_ignored=False, auto_only=False, score_threshold=SCORE_THRESHOLD, match_limit=MATCH_LIMIT, retries=RETRIES, delay=DELAY, expiry=EXPIRY):
         self._update_links(update_ignored, auto_only, score_threshold, match_limit)
-        self._update_photos(retries)
+        self._update_photos(retries, delay, expiry)
 
     def edit(self, score_threshold=SCORE_THRESHOLD, match_limit=MATCH_LIMIT):
         self._edit_links(score_threshold, match_limit)
@@ -276,15 +289,24 @@ class Sink:
         if delete_links:
             self._delete_links()
 
-    def _update_photos(self, retries):
+    def _update_photos(self, retries, delay, expiry):
         print("Updating photos...")
         for contact_url in self.links:
             friend_url = self.links[contact_url]
-            if friend_url is not None:
-                picture = self.facebook.get_profile_picture(friend_url, self.friends[friend_url])
-                if picture is None:
-                    print("NO PICTURE: " + self.contacts[contact_url])
-                    continue
+            if not friend_url:
+                continue
+
+            if not self._should_update(contact_url, expiry):
+                print("SKIPPED: " + self.contacts[contact_url])
+                continue
+
+            user_id = self.facebook.get_user_id(friend_url)
+            if not user_id:
+                print("RATE LIMITED: " + self.contacts[contact_url])
+                continue
+
+            picture = self.facebook.get_profile_picture(user_id)
+            if picture:
                 picture_bytes = open(picture, 'rb').read()
                 checksum = hashlib.md5(picture_bytes).hexdigest()
                 if contact_url in self.checksums and self.checksums[contact_url] == checksum:
@@ -294,6 +316,11 @@ class Sink:
                     self._set_checksum(contact_url, checksum)
                 else:
                     print("FAILED: " + self.contacts[contact_url])
+                self._set_timestamp(contact_url)
+            else:
+                print("NO PICTURE: " + self.contacts[contact_url])
+
+            time.sleep(delay)
 
     def _delete_photos(self, retries):
         print("Deleting photos...")
@@ -310,6 +337,8 @@ class Sink:
                 del self.links[contact_url]
                 if contact_url in self.checksums:
                     del self.checksums[contact_url]
+                if contact_url in self.timestamps:
+                    del self.timestamps[contact_url]
 
     def _update_links(self, update_ignored, auto_only, score_threshold, match_limit):
         print("Updating links...")
@@ -390,6 +419,11 @@ class Sink:
     def _get_matches(self, name, match_limit):
         return process.extract(name, self.friends, scorer=fuzz.UWRatio, limit=match_limit)
 
+    def _should_update(self, contact_url, expiry):
+        if contact_url not in self.timestamps:
+            return True
+        return datetime.now() > self.timestamps[contact_url] + timedelta(days=expiry)
+
     def _retry(self, func, retries):
         for retry in range(retries):
             try:
@@ -401,10 +435,11 @@ class Sink:
 
     def _set_checksum(self, contact_url, checksum):
         self.checksums[contact_url] = checksum
-        self._save_checksums()
-
-    def _save_checksums(self):
         self.shelf[CHECKSUMS] = self.checksums
+
+    def _set_timestamp(self, contact_url):
+        self.timestamps[contact_url] = datetime.now()
+        self.shelf[TIMESTAMPS] = self.timestamps
 
 
 def main():
@@ -412,7 +447,7 @@ def main():
     shelf = shelve.open(args.filename)
     sink = Sink(shelf)
     if args.command == 'update':
-        sink.update(args.update_ignored, args.auto_only, args.score_threshold, args.match_limit, args.retries)
+        sink.update(args.update_ignored, args.auto_only, args.score_threshold, args.match_limit, args.retries, args.delay, args.expiry)
     elif args.command == 'edit':
         sink.edit(args.score_threshold, args.match_limit)
     elif args.command == 'delete':
@@ -433,7 +468,11 @@ def parse_args():
     param_parser.add_argument('-m', '--matches', dest='match_limit', metavar='MATCHES', default=MATCH_LIMIT, type=int, help='number of matches to show when searching contacts')
     retry_parser = argparse.ArgumentParser(add_help=False)
     retry_parser.add_argument('-r', '--retries', dest='retries', metavar='RETRIES', default=RETRIES, type=int, help='number of times to retry updating photos before failing')
-    update = subparsers.add_parser('update', parents=[file_parser, update_parser, param_parser, retry_parser], description=UDPATE_DESCRIPTION, help='update contact photos', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    delay_parser = argparse.ArgumentParser(add_help=False)
+    delay_parser.add_argument('-d', '--delay', dest='delay', metavar='DELAY', default=DELAY, type=int, help='number of seconds to wait between contacts when updating photos')
+    expiry_parser = argparse.ArgumentParser(add_help=False)
+    delay_parser.add_argument('-e', '--expiry', dest='expiry', metavar='EXPIRY', default=EXPIRY, type=int, help='number of days a photo is considered current and should not be updated')
+    update = subparsers.add_parser('update', parents=[file_parser, update_parser, param_parser, retry_parser, delay_parser, expiry_parser], description=UDPATE_DESCRIPTION, help='update contact photos', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     edit = subparsers.add_parser('edit', parents=[file_parser, param_parser], description=EDIT_DESCRIPTION, help='edit contact links', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     delete = subparsers.add_parser('delete', parents=[file_parser, delete_parser, retry_parser], description=DELETE_DESCRIPTION, help='delete contact photos', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     return parser.parse_args()

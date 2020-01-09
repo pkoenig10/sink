@@ -30,7 +30,7 @@ The update command updates your links and contact photos.  This command first cr
 
 The Sink update command is invoked by the following command
 
-    $ python sink.py update [filename] [-a] [-i] [-s SCORE] [-m MATCHES] [-r RETRIES]
+    $ python sink.py update [filename] [-a] [-i] [-s SCORE] [-m MATCHES] [-r RETRIES] [-d DELAY] [-e EXPIRY]
 
 ###### Optional Arguments
 
@@ -40,6 +40,8 @@ The Sink update command is invoked by the following command
 * `-s SCORE, --score SCORE` - score threshold to automatically link contacts.  Must be between 0 and 100.  The higher this number, the more similar contact and friends names must be to be automatically linked.  Defaults to 100 (perfect match).
 * `-m MATCHES, --matches MATCHES` - the number of results to show when searching for friends to link to a contact.  Defaults to 5.
 * `-r RETRIES, --retries RETRIES` - number of times to retry updating photos before failing.  Defaults to 3.
+* `-d DELAY, --delay DELAY` - number of seconds to wait between contacts when updating photos.  Defaults to 0.
+* `-e EXPIRY, --expiry EXPIRY` - number of days a photo is considered current and should not be updated.  Defaults to 30.
 
 To view information about the Sink update command invoke help
 
