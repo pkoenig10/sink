@@ -184,8 +184,8 @@ class Facebook:
 
 
 class GoogleContacts:
-    client_id = '552213042372-tf77q58ch6t6o6tp3s40d66pqeumg10v'
-    client_secret = 'mQyQpDQgjaZ5Leh8SjKLXu5y'
+    client_id = os.getenv('SINK_CLIENT_ID')
+    client_secret = os.getenv('SINK_CLIENT_SECRET')
     scope = 'https://www.google.com/m8/feeds'
     user_agent = ''
     port = PORT
