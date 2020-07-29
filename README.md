@@ -8,6 +8,12 @@ To install the required dependencies, run the following command.  This only need
 
     $ pip install -r requirements.txt
 
+### Google OAuth2 Credentials
+
+Sink requires OAuth2 credentials in order to access your Google account. To obtain OAuth2 credentials, you will need to create an OAuth2 application in the [Google API console](https://console.developers.google.com/).
+
+After obtaining OAuth2 credentials, set the `SINK_CLIENT_ID` and `SINK_CLIENT_SECRET` environment variables to the client ID and client secret, respectively. Sink reads these environment variables to obtain the client ID and client secret. 
+
 ## Usage
 
 When run for the first time, Sink will request permission to manage your contacts and ask for your Facebook username and password.  This is necessary to be able to access your accounts.  Sink will also create a database which contains these credentials and all created links created between Google contacts and Facebook friends.  This database is automatically updated anytime Sink is run.  **This data is not stored securely or protected in any way.  Secure your computer account to protect access to your database and do not share it others.**
